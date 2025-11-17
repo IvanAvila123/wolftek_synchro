@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Models\Store;
+use Filament\Auth\Pages\Register;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -27,6 +29,9 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->tenant(Store::class)
+            //->tenantRegistration(RegisterStore::class)
+            //->tenantProfile(EditStore::class)
             ->login()
             ->colors([
                 'primary' => Color::Indigo,
