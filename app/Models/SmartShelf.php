@@ -18,8 +18,17 @@ class SmartShelf extends Model
         'last_reported_at',
     ];
 
+    protected $casts = [
+        'last_reported_at' => 'datetime',
+    ];
+
     public function store(): BelongsTo
 {
     return $this->belongsTo(Store::class);
 }
+
+public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
 }

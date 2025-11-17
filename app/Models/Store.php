@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Store extends Model
 {
@@ -17,5 +19,26 @@ class Store extends Model
 
     ];
 
-    
+
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class);
+    }
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    public function smartShelves(): HasMany
+    {
+        return $this->hasMany(SmartShelf::class);
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+
 }
