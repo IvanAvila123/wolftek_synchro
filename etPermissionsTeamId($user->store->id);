@@ -1,0 +1,14 @@
+[90m= [39m[34;4mApp\Models\User[39;24m {#7783
+    [34mid[39m: [35m6[39m,
+    [34mname[39m: "[32mDueño Prueba 2[39m",
+    [34memail[39m: "[32mdueno2@prueba.com[39m",
+    [34memail_verified_at[39m: [36mnull[39m,
+    #[33mpassword[39m: "[32m$2y$12$S2bsloskAe3mBKUw/8vaSua9zkI.kcZMBAf7lkH0fZh.6fQprkSDK[39m",
+    [34mphone[39m: "[32m5509347612[39m",
+    [34mis_active[39m: [35m1[39m,
+    #[33mremember_token[39m: [36mnull[39m,
+    [34mcreated_at[39m: "[32m2026-03-08 01:21:15[39m",
+    [34mupdated_at[39m: "[32m2026-03-08 01:50:39[39m",
+    [34mui_preferences[39m: "[32m{"ui.color": "#ec4899", "ui.layout": "sidebar-collapsed"}[39m",
+  }
+
