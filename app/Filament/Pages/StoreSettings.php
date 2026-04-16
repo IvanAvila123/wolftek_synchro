@@ -93,7 +93,13 @@ protected static ?string $navegationIcon = 'heroicon-o-cog-6-tooth';
                     ->label('Descripción para el catálogo en línea')
                     ->placeholder('Ej: Somos un negocio con más de 20 años de experiencia...')
                     ->rows(3)
-                    ->nullable(),
+                    ->nullable()
+                    ->disabled(fn () => ! filament()->getTenant()?->hasFeature('online_catalog'))
+                    ->hint(fn () => ! filament()->getTenant()?->hasFeature('online_catalog')
+                        ? '🔒 Requiere plan Profesional o superior'
+                        : null
+                    )
+                    ->hintColor('warning'),
                 FileUpload::make('logo')
                     ->label('Logo de la tienda')
                     ->image()

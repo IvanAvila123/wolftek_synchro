@@ -28,6 +28,10 @@ new class extends Component {
     public function mount(Store $store)
     {
         $this->store = $store;
+
+        if (! $store->hasFeature('online_catalog')) {
+            abort(404);
+        }
     }
 
     #[Computed]
