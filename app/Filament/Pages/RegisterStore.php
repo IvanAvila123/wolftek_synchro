@@ -19,6 +19,11 @@ class RegisterStore extends RegisterTenant
         return 'Registrar mi Tienda';
     }
 
+    public static function canView(): bool
+    {
+        return auth()->check();
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema
