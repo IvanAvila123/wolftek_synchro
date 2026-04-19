@@ -77,3 +77,4 @@ Route::get('pedido-online/{order}', function (OnlineOrder $order) {
 })->middleware('auth')->name('pedido-online');
 
 Route::post('/webhook/conekta', [WebhookController::class, 'handleConekta']);
+Route::post('/webhook/mercadopago', [WebhookController::class, 'handleMercadoPago']);

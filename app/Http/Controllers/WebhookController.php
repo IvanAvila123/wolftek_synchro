@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Plan;
 use App\Models\Store;
 use App\Models\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use MercadoPago\Client\Payment\PaymentClient;
+use MercadoPago\Client\PreApproval\PreApprovalClient;
+use MercadoPago\MercadoPagoConfig;
 
 class WebhookController extends Controller
 {
@@ -100,5 +104,107 @@ class WebhookController extends Controller
         $result = openssl_verify($body, $signature, $publicKey, OPENSSL_ALGO_SHA256);
 
         return $result === 1;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MERCADO PAGO
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function handleMercadoPago(Request $request)
+    {
+        Log::info('MP Webhook recibido', $request->all());
+
+        $topic = $request->query('topic') ?? $request->input('type');
+        $id    = $request->query('id')    ?? $request->input('data.id');
+
+        // MP envía distintos tipos: "payment" o "subscription_authorized_payment"
+        if (! in_array($topic, ['payment', 'subscription_authorized_payment'])) {
+            return response()->json(['status' => 'ignored'], 200);
+        }
+
+        if (empty($id)) {
+            return response()->json(['status' => 'no_id'], 200);
+        }
+
+        try {
+            MercadoPagoConfig::setAccessToken(config('mercadopago.access_token'));
+
+            // 1. Obtener detalles del pago
+            $paymentClient = new PaymentClient();
+            $payment       = $paymentClient->get((int) $id);
+
+            Log::info('MP Payment status: ' . $payment->status);
+
+            if ($payment->status !== 'approved') {
+                return response()->json(['status' => 'not_approved'], 200);
+            }
+
+            // 2. Obtener external_reference desde la suscripción (preapproval)
+            $externalRef = $payment->external_reference;
+
+            if (empty($externalRef) && ! empty($payment->preapproval_id)) {
+                $preapprovalClient = new PreApprovalClient();
+                $preapproval       = $preapprovalClient->get($payment->preapproval_id);
+                $externalRef       = $preapproval->external_reference ?? null;
+            }
+
+            Log::info('MP external_reference: ' . $externalRef);
+
+            // Formato esperado: store_{id}_plan_{id}
+            if (! $externalRef || ! str_starts_with($externalRef, 'store_')) {
+                Log::error('MP Webhook: external_reference inválido: ' . $externalRef);
+                return response()->json(['status' => 'no_reference'], 200);
+            }
+
+            // 3. Parsear store_id y plan_id
+            preg_match('/store_(\d+)_plan_(\d+)/', $externalRef, $matches);
+            $storeId = $matches[1] ?? null;
+            $planId  = $matches[2] ?? null;
+
+            if (! $storeId || ! $planId) {
+                Log::error('MP Webhook: no se pudo parsear store_id/plan_id de: ' . $externalRef);
+                return response()->json(['status' => 'parse_error'], 200);
+            }
+
+            $store = Store::find($storeId);
+            $plan  = Plan::find($planId);
+
+            if (! $store || ! $plan) {
+                Log::error("MP Webhook: store {$storeId} o plan {$planId} no encontrado.");
+                return response()->json(['status' => 'not_found'], 200);
+            }
+
+            // 4. Extender valid_until 30 días
+            $newValidUntil = now()->gt($store->valid_until ?? now())
+                ? now()->addDays(30)
+                : \Carbon\Carbon::parse($store->valid_until)->addDays(30);
+
+            $store->update([
+                'plan_id'     => $plan->id,
+                'is_active'   => true,
+                'estatus'     => 'activo',
+                'valid_until' => $newValidUntil,
+            ]);
+
+            // 5. Registrar en historial de suscripciones
+            Subscription::create([
+                'store_id'          => $store->id,
+                'plan_id'           => $plan->id,
+                'estatus'           => 'activo',
+                'payment_method'    => 'tarjeta',
+                'mp_subscription_id'=> $payment->preapproval_id ?? null,
+                'mp_payment_id'     => (string) $payment->id,
+                'starts_at'         => now(),
+                'ends_at'           => $newValidUntil,
+            ]);
+
+            Log::info("MP Webhook: Tienda {$store->id} ({$store->name}) activada hasta {$newValidUntil}.");
+
+            return response()->json(['status' => 'success'], 200);
+
+        } catch (\Exception $e) {
+            Log::error('MP Webhook error: ' . $e->getMessage());
+            return response()->json(['status' => 'error'], 500);
+        }
     }
 }

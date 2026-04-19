@@ -13,6 +13,8 @@ class Subscription extends Model
         'estatus',
         'payment_method',
         'conekta_subscription_id',
+        'mp_subscription_id',
+        'mp_payment_id',
         'starts_at',
         'ends_at',
     ];

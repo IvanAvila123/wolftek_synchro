@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use Andreia\FilamentUiSwitcher\FilamentUiSwitcherPlugin;
+use App\Filament\Pages\RegisterStore;
 use App\Http\Middleware\CheckStoreStatus;
 use App\Models\Store;
 use Filament\Actions\Action;
@@ -36,7 +37,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(fn() => filament()->getTenant()?->logo_url ?? null)
             ->brandLogoHeight('40px')
             ->tenant(Store::class, ownershipRelationship: 'store')
-            ->tenantRegistration(\App\Filament\Pages\RegisterStore::class)
+            ->tenantRegistration(RegisterStore::class)
             ->tenantMenuItems([
                 'register' => fn(Action $action) => $action
                     ->visible(function () {

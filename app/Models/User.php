@@ -45,20 +45,26 @@ class User extends Authenticatable implements FilamentUser, HasTenants
      * Lee el campo `panel` del rol asignado al usuario para decidir el acceso.
      */
     public function canAccessPanel(Panel $panel): bool
-    {
-        if ($panel->getId() === 'superadmin') {
-            return $this->hasDirectRole(['super_admin']);
-        }
-
-        // super_admin nunca entra a admin ni cashier por esta vía
-        if ($this->hasDirectRole(['super_admin'])) {
-            return false;
-        }
-
-        $rolePanel = $this->getRolePanel();
-
-        return $rolePanel === $panel->getId();
+{
+    // 1. Los Super Admins solo entran a su panel maestro
+    if ($panel->getId() === 'superadmin') {
+        return $this->hasDirectRole(['super_admin']);
     }
+
+    if ($this->hasDirectRole(['super_admin'])) {
+        return false;
+    }
+
+    // 2. LA MAGIA: Dejamos pasar a TODOS al panel 'admin'.
+    // Si no tienen tienda, Filament los encerrará en la página RegisterStore automáticamente.
+    if ($panel->getId() === 'admin') {
+        return true;
+    }
+
+    // 3. Para el panel 'cashier', mantenemos tu validación estricta de roles.
+    $rolePanel = $this->getRolePanel();
+    return $rolePanel === $panel->getId();
+}
 
     /**
      * Devuelve el valor del campo `panel` del rol asignado al usuario.
