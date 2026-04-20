@@ -34,7 +34,7 @@ class EnsureOpenCashShift
         }
 
         if ($hasOpenShift && $currentRoute === $openShiftRoute) {
-            return redirect()->route('filament.cashier.pages.dashboard', ['tenant' => $tenant]);
+            return redirect()->route('filament.cashier.pages.pos', ['tenant' => $tenant]);
         }
 
         return $next($request);
