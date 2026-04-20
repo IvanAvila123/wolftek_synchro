@@ -182,7 +182,7 @@ class StoreForm
                                                             return 'Guarda la tienda para generar el enlace';
                                                         }
 
-                                                        $url = url("/catalogo/{$record->id}");
+                                                        $url = route('tienda.catalogo', $record->id);
 
                                                         return new HtmlString(
                                                             "<div style='display:flex;align-items:center;gap:8px;'>
