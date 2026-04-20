@@ -65,7 +65,7 @@ class PlanResource extends Resource
                         'scale'            => 'Báscula de precio',
                         'labels'           => 'Etiquetador',
                         'batches'          => 'Lotes y caducidades',
-                        'whatsapp'         => 'Catalogo en linea',
+                        'online_catalog'         => 'Catalogo en linea',
                         'reports'          => 'Reportes avanzados',
                         'multi_branch'     => 'Multi-sucursal',
                         'expenses'         => 'Control de gastos',
