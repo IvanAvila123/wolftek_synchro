@@ -55,10 +55,12 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         return false;
     }
 
-    // 2. LA MAGIA: Dejamos pasar a TODOS al panel 'admin'.
-    // Si no tienen tienda, Filament los encerrará en la página RegisterStore automáticamente.
+    // 2. Panel admin: solo owners/managers, o usuarios sin tienda (para registrarla)
     if ($panel->getId() === 'admin') {
-        return true;
+        if ($this->getTenants($panel)->isEmpty()) {
+            return true; // Sin tienda → puede registrar una
+        }
+        return $this->getRolePanel() === 'admin';
     }
 
     // 3. Para el panel 'cashier', mantenemos tu validación estricta de roles.
