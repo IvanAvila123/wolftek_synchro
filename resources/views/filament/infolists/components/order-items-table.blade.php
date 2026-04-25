@@ -12,13 +12,13 @@
 
     $formatQty = function($qty) {
         $fractions = [
-            0.125 => '⅛', 0.25 => '¼', 0.333 => '⅓',
-            0.5   => '½', 0.666 => '⅔', 0.667 => '⅔',
-            0.75  => '¾',
+            '0.125' => '⅛', '0.25' => '¼', '0.333' => '⅓',
+            '0.5'   => '½', '0.666' => '⅔', '0.667' => '⅔',
+            '0.75'  => '¾',
         ];
         $whole = (int) $qty;
         $decimal = round($qty - $whole, 3);
-        $fraction = $fractions[$decimal] ?? null;
+        $fraction = $fractions[(string) $decimal] ?? null;
 
         if ($decimal == 0) return (string) $whole;
         if ($fraction && $whole > 0) return "{$whole} {$fraction}";
