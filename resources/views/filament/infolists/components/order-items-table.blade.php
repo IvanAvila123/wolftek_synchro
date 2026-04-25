@@ -2,13 +2,29 @@
     // Obtenemos el registro de forma súper segura
     $record = $getRecord();
     $items = $record ? $record->cart_items : [];
-    
+
     // Si viene como texto JSON, lo convertimos a arreglo
     if (is_string($items)) {
         $items = json_decode($items, true);
     }
     $total = collect($items)->sum(fn($item) => ($item['price'] ?? 0) * ($item['qty'] ?? 0));
     $totalQty = collect($items)->sum('qty');
+
+    $formatQty = function($qty) {
+        $fractions = [
+            0.125 => '⅛', 0.25 => '¼', 0.333 => '⅓',
+            0.5   => '½', 0.666 => '⅔', 0.667 => '⅔',
+            0.75  => '¾',
+        ];
+        $whole = (int) $qty;
+        $decimal = round($qty - $whole, 3);
+        $fraction = $fractions[$decimal] ?? null;
+
+        if ($decimal == 0) return (string) $whole;
+        if ($fraction && $whole > 0) return "{$whole} {$fraction}";
+        if ($fraction) return $fraction;
+        return rtrim(rtrim(number_format($qty, 3), '0'), '.');
+    };
 @endphp
 
 @if(!empty($items))
@@ -37,7 +53,7 @@
                         {{-- Cantidad --}}
                         <td class="px-4 py-3 text-start">
                             <span class="inline-flex items-center justify-center rounded-lg bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-600 dark:bg-primary-400/10 dark:text-primary-400">
-                                {{ $item['qty'] }}
+                                {{ $formatQty($item['qty']) }}
                             </span>
                         </td>
 
@@ -64,7 +80,7 @@
                 <tr class="bg-gray-50/50 dark:bg-white/[0.03]">
                     <td class="px-4 py-3 text-start">
                         <span class="inline-flex items-center justify-center rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-600 dark:bg-white/10 dark:text-gray-300">
-                            {{ $totalQty }}
+                            {{ $formatQty($totalQty) }}
                         </span>
                     </td>
                     <td class="px-4 py-3 text-sm font-bold text-gray-950 dark:text-white" colspan="1">

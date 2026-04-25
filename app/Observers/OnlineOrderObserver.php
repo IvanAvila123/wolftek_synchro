@@ -4,14 +4,19 @@ namespace App\Observers;
 
 use App\Models\OnlineOrder;
 use App\Models\User;
-use Filament\Actions\Action;
+use Filament\Notifications\Actions\Action;
 use Filament\Notifications\Notification;
 
 class OnlineOrderObserver
 {
     public function created(OnlineOrder $order): void
     {
-        // Cajeros y managers de la tienda — query directa para evitar team context de Spatie
+        // Dueño de la tienda
+        $ownerUsers = User::where('id', function ($q) use ($order) {
+            $q->select('user_id')->from('stores')->where('id', $order->store_id);
+        })->get();
+
+        // Cajeros y managers empleados de la tienda
         $cashierUsers = User::whereHas('employee', fn ($q) => $q->where('store_id', $order->store_id))
             ->whereExists(fn ($q) => $q
                 ->from('model_has_roles')
@@ -21,7 +26,9 @@ class OnlineOrderObserver
                 ->whereIn('roles.name', ['cashier', 'manager'])
             )->get();
 
-        if ($cashierUsers->isEmpty()) {
+        $recipients = $ownerUsers->merge($cashierUsers)->unique('id');
+
+        if ($recipients->isEmpty()) {
             return;
         }
 
@@ -36,6 +43,6 @@ class OnlineOrderObserver
                     ->url("/cashier/{$order->store_id}/online-orders")
                     ->markAsRead(),
             ])
-            ->sendToDatabase($cashierUsers);
+            ->sendToDatabase($recipients);
     }
 }
