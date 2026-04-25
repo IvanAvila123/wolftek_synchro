@@ -19,7 +19,7 @@ Route::get('/', function () {
         return redirect('/admin/login');
     }
 
-    if ($user->hasDirectRole('super_admin')) {
+    if ($user->hasDirectRole(['super_admin'])) {
         return redirect('/superadmin');
     }
 
