@@ -5,7 +5,7 @@ namespace App\Observers;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
-use Filament\Notifications\Actions\Action;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 
 class ProductObserver

@@ -42,7 +42,7 @@ class CorteDeCaja extends Page implements HasForms
                 ->title('No tienes un turno abierto')
                 ->warning()
                 ->send();
-            redirect()->route('filament.cashier.pages.dashboard', ['tenant' => filament()->getTenant()->id]);
+            redirect()->route('filament.cashier.pages.pos', ['tenant' => filament()->getTenant()->id]);
             return;
         }
 
@@ -122,6 +122,6 @@ class CorteDeCaja extends Page implements HasForms
 
         // Al cerrar, lo mandamos al dashboard (el cual, gracias al middleware, 
         // lo bloqueará si intenta ir a vender sin abrir caja otra vez).
-        return redirect()->route('filament.cashier.pages.dashboard', ['tenant' => filament()->getTenant()->id]);
+        return redirect()->route('filament.cashier.pages.pos', ['tenant' => filament()->getTenant()->id]);
     }
 }

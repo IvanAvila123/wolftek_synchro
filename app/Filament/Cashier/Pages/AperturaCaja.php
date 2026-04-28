@@ -77,7 +77,7 @@ class AperturaCaja extends Page implements HasForms
             ->success()
             ->send();
 
-        return redirect()->route('filament.cashier.pages.dashboard', [
+        return redirect()->route('filament.cashier.pages.pos', [
             'tenant' => filament()->getTenant()->id
         ]);
     }
