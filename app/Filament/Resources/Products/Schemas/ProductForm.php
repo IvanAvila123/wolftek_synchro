@@ -105,7 +105,17 @@ class ProductForm
                             ->nullable(),
 
                         TextInput::make('price_sell')
-                            ->label('Precio de venta')
+                            ->label(fn(\Filament\Schemas\Components\Utilities\Get $get) => $get('has_scale')
+                                ? 'Precio por ' . match($get('unidad')) {
+                                    'kg'    => 'kilogramo',
+                                    'gramo' => 'gramo',
+                                    'litro' => 'litro',
+                                    default => 'unidad',
+                                }
+                                : 'Precio de venta')
+                            ->helperText(fn(\Filament\Schemas\Components\Utilities\Get $get) => $get('has_scale')
+                                ? 'El POS calculará el precio automáticamente según el peso o monto ingresado'
+                                : null)
                             ->placeholder('0.00')
                             ->numeric()
                             ->prefix('$')

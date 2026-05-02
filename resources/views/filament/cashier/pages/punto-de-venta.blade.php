@@ -59,35 +59,53 @@
                 </div>
 
                 <div class="cart-scroll flex-1 overflow-y-auto">
-                    @forelse($cart as $index => $item)
+                    @forelse($cart as $item)
                         <div class="cart-item cart-row grid grid-cols-12 gap-2 items-center px-5 py-3.5 border-b border-gray-50 dark:border-gray-800/60 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
 
                             <div class="col-span-5 flex items-center gap-3">
                                 <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm font-bold shrink-0">
-                                    {{ $index + 1 }}
+                                    {{ $loop->iteration }}
                                 </div>
                                 <div>
                                     <p class="font-semibold text-gray-900 dark:text-white text-sm leading-tight">{{ $item['name'] }}</p>
-                                    @if(!empty($item['barcode']))
-                                        <p class="text-xs text-gray-400 mt-0.5 font-mono">{{ $item['barcode'] }}</p>
+                                    @if(!empty($item['is_bulk']))
+                                        <p class="text-xs text-violet-500 dark:text-violet-400 mt-0.5 font-semibold">⚖️ A granel</p>
                                     @endif
                                 </div>
                             </div>
 
                             <div class="col-span-2 text-center">
                                 <span class="text-sm text-gray-600 dark:text-gray-300 font-medium">${{ number_format($item['price'], 2) }}</span>
+                                @if(!empty($item['is_bulk']))
+                                    <p class="text-[10px] text-gray-400">/{{ $item['unidad'] }}</p>
+                                @endif
                             </div>
 
                             <div class="col-span-2 flex justify-center">
-                                <div class="inline-flex items-center rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
-                                    <button wire:click="actualizarCantidad({{ $item['id'] }}, {{ $item['quantity'] - 1 }})" class="px-2.5 py-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors" @if($item['quantity'] <= 1) disabled @endif>
-                                        <x-heroicon-m-minus class="w-3.5 h-3.5" />
-                                    </button>
-                                    <input type="number" value="{{ $item['quantity'] }}" wire:change="actualizarCantidad({{ $item['id'] }}, $event.target.value)" class="w-12 text-center border-0 border-x border-gray-200 dark:border-gray-700 py-1.5 text-sm font-semibold text-gray-900 dark:text-white bg-transparent focus:ring-0" min="1">
-                                    <button wire:click="actualizarCantidad({{ $item['id'] }}, {{ $item['quantity'] + 1 }})" class="px-2.5 py-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors">
-                                        <x-heroicon-m-plus class="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
+                                @if(!empty($item['is_bulk']))
+                                    {{-- Granel: input de peso editable + botón de lápiz para reabrir modal --}}
+                                    <div class="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            value="{{ $item['quantity'] }}"
+                                            wire:change="actualizarCantidad({{ $item['id'] }}, $event.target.value)"
+                                            class="w-16 text-center rounded-lg border-0 ring-1 ring-gray-200 dark:ring-gray-700 py-1.5 text-sm font-semibold text-gray-900 dark:text-white bg-transparent focus:ring-2 focus:ring-violet-400"
+                                            step="0.001"
+                                            min="0.001"
+                                        >
+                                        <span class="text-xs text-gray-400">{{ $item['unidad'] }}</span>
+                                    </div>
+                                @else
+                                    <div class="inline-flex items-center rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
+                                        <button wire:click="actualizarCantidad({{ $item['id'] }}, {{ $item['quantity'] - 1 }})" class="px-2.5 py-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors" @if($item['quantity'] <= 1) disabled @endif>
+                                            <x-heroicon-m-minus class="w-3.5 h-3.5" />
+                                        </button>
+                                        <input type="number" value="{{ $item['quantity'] }}" wire:change="actualizarCantidad({{ $item['id'] }}, $event.target.value)" class="w-12 text-center border-0 border-x border-gray-200 dark:border-gray-700 py-1.5 text-sm font-semibold text-gray-900 dark:text-white bg-transparent focus:ring-0" min="1">
+                                        <button wire:click="actualizarCantidad({{ $item['id'] }}, {{ $item['quantity'] + 1 }})" class="px-2.5 py-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors">
+                                            <x-heroicon-m-plus class="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                @endif
                             </div>
 
                             <div class="col-span-2 text-right">
@@ -334,6 +352,102 @@
             </div>
         </div>
     </div>
+
+    {{-- ========== MODAL: Producto a granel ========== --}}
+    @if($bulkModalOpen && $bulkProduct)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" wire:click.self="cancelarBulk">
+            <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden ring-1 ring-gray-200 dark:ring-white/10">
+
+                {{-- Encabezado --}}
+                <div class="flex items-start justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900 dark:text-white">{{ $bulkProduct['name'] }}</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                            ${{ number_format($bulkProduct['price'], 2) }} / {{ $bulkProduct['unidad'] }}
+                        </p>
+                    </div>
+                    <button wire:click="cancelarBulk" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 transition-colors">
+                        <x-heroicon-o-x-mark class="w-5 h-5" />
+                    </button>
+                </div>
+
+                {{-- Tabs: Por peso / Por monto --}}
+                <div class="grid grid-cols-2 border-b border-gray-100 dark:border-gray-800">
+                    <button wire:click="$set('bulkMode', 'peso')" class="px-4 py-3 text-sm font-semibold transition-colors {{ $bulkMode === 'peso' ? 'text-violet-600 dark:text-violet-400 border-b-2 border-violet-500 bg-violet-50/50 dark:bg-violet-500/5' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }}">
+                        ⚖️ Por peso
+                    </button>
+                    <button wire:click="$set('bulkMode', 'monto')" class="px-4 py-3 text-sm font-semibold transition-colors {{ $bulkMode === 'monto' ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500 bg-blue-50/50 dark:bg-blue-500/5' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }}">
+                        💰 Por monto
+                    </button>
+                </div>
+
+                {{-- Cuerpo --}}
+                <div class="px-5 py-5">
+                    @if($bulkMode === 'peso')
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Peso en {{ $bulkProduct['unidad'] }}
+                        </label>
+                        <div class="relative">
+                            <input
+                                type="number"
+                                wire:model.live="bulkPeso"
+                                wire:keydown.enter="confirmarBulk"
+                                class="block w-full rounded-xl border-0 py-4 px-4 pr-14 text-2xl font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-violet-500 transition-all"
+                                placeholder="0.000"
+                                step="0.001"
+                                min="0.001"
+                                autofocus
+                            >
+                            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm">{{ $bulkProduct['unidad'] }}</span>
+                        </div>
+                        @if($bulkPeso && (float)$bulkPeso > 0)
+                            <div class="mt-3 flex justify-between items-center px-4 py-3 rounded-xl bg-violet-50 dark:bg-violet-500/10 ring-1 ring-violet-200 dark:ring-violet-500/20">
+                                <span class="text-sm font-semibold text-violet-700 dark:text-violet-300">Total</span>
+                                <span class="text-xl font-black text-violet-700 dark:text-violet-300">
+                                    ${{ number_format((float)$bulkPeso * $bulkProduct['price'], 2) }}
+                                </span>
+                            </div>
+                        @endif
+                    @else
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Monto en pesos
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xl">$</span>
+                            <input
+                                type="number"
+                                wire:model.live="bulkMonto"
+                                wire:keydown.enter="confirmarBulk"
+                                class="block w-full rounded-xl border-0 py-4 pl-10 pr-4 text-2xl font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-blue-500 transition-all"
+                                placeholder="0.00"
+                                step="0.50"
+                                min="0.01"
+                                autofocus
+                            >
+                        </div>
+                        @if($bulkMonto && (float)$bulkMonto > 0 && $bulkProduct['price'] > 0)
+                            <div class="mt-3 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 ring-1 ring-blue-200 dark:ring-blue-500/20 flex justify-between items-center">
+                                <span class="text-sm font-semibold text-blue-700 dark:text-blue-300">Equivale a</span>
+                                <span class="text-base font-black text-blue-700 dark:text-blue-300">
+                                    {{ number_format((float)$bulkMonto / $bulkProduct['price'], 3) }} {{ $bulkProduct['unidad'] }}
+                                </span>
+                            </div>
+                        @endif
+                    @endif
+                </div>
+
+                {{-- Pie --}}
+                <div class="px-5 pb-5 flex gap-3">
+                    <button wire:click="cancelarBulk" class="flex-1 py-3 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-400 ring-1 ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
+                        Cancelar
+                    </button>
+                    <button wire:click="confirmarBulk" class="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-violet-500 hover:bg-violet-600 transition-all shadow-sm shadow-violet-500/20">
+                        Agregar al carrito
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 
     @script
     <script>

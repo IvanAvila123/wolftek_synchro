@@ -25,6 +25,13 @@ class PuntoDeVenta extends Page
     public string $montoRecibido = '';
     public float $cambio = 0.00;
 
+    // Granel / venta por peso
+    public bool $bulkModalOpen = false;
+    public ?array $bulkProduct = null;
+    public string $bulkPeso = '';
+    public string $bulkMonto = '';
+    public string $bulkMode = 'peso';
+
     protected function getHeaderActions(): array
     {
         return [
@@ -114,11 +121,10 @@ class PuntoDeVenta extends Page
 
     public function buscarProducto()
     {
-        if (empty($this->barcode)) return;
+        if (empty($this->barcode) || $this->bulkModalOpen) return;
 
         $storeId = filament()->getTenant()->id;
 
-        // Buscamos el producto en la base de datos de esta tienda
         $product = Product::where('store_id', $storeId)
             ->where('barcode', $this->barcode)
             ->where('is_active', true)
@@ -129,16 +135,85 @@ class PuntoDeVenta extends Page
                 ->title('Producto no encontrado')
                 ->danger()
                 ->send();
-            
-            $this->barcode = ''; // Limpiamos para intentar de nuevo
+            $this->barcode = '';
             return;
         }
 
-        // Si existe, lo mandamos al carrito
+        $this->barcode = '';
+
+        if ($product->has_scale) {
+            $this->abrirModalGranel($product);
+            return;
+        }
+
         $this->agregarAlCarrito($product);
-        
-        // Limpiamos el input para el siguiente escaneo inmediato
-        $this->barcode = ''; 
+    }
+
+    public function abrirModalGranel(Product $product): void
+    {
+        $existing = $this->cart[$product->id] ?? null;
+
+        $this->bulkProduct = [
+            'id'     => $product->id,
+            'name'   => $product->name,
+            'price'  => (float) $product->price_sell,
+            'unidad' => $product->unidad,
+        ];
+        $this->bulkPeso  = $existing ? (string) $existing['quantity'] : '';
+        $this->bulkMonto = '';
+        $this->bulkMode  = 'peso';
+        $this->bulkModalOpen = true;
+    }
+
+    public function confirmarBulk(): void
+    {
+        if (!$this->bulkProduct) return;
+
+        $productId = $this->bulkProduct['id'];
+        $precio    = (float) $this->bulkProduct['price'];
+
+        if ($this->bulkMode === 'peso') {
+            $peso     = (float) $this->bulkPeso;
+            $subtotal = round($peso * $precio, 2);
+        } else {
+            $subtotal = (float) $this->bulkMonto;
+            $peso     = $precio > 0 ? round($subtotal / $precio, 3) : 0;
+        }
+
+        if ($peso <= 0 || $subtotal <= 0) {
+            Notification::make()->title('Ingresa un peso o monto válido')->warning()->send();
+            return;
+        }
+
+        $this->cart[$productId] = [
+            'id'          => $productId,
+            'name'        => $this->bulkProduct['name'],
+            'price'       => $precio,
+            'quantity'    => $peso,
+            'subtotal'    => $subtotal,
+            'is_bulk'     => true,
+            'unidad'      => $this->bulkProduct['unidad'],
+            'promo_id'    => null,
+            'promo_tipo'  => null,
+            'promo_paga'  => null,
+            'promo_lleva' => null,
+            'promo_label' => null,
+            'ahorro'      => 0,
+        ];
+
+        $this->bulkModalOpen = false;
+        $this->bulkProduct   = null;
+        $this->bulkPeso      = '';
+        $this->bulkMonto     = '';
+        $this->calcularTotal();
+    }
+
+    public function cancelarBulk(): void
+    {
+        $this->bulkModalOpen = false;
+        $this->bulkProduct   = null;
+        $this->bulkPeso      = '';
+        $this->bulkMonto     = '';
     }
 
     public function agregarAlCarrito(Product $product)
