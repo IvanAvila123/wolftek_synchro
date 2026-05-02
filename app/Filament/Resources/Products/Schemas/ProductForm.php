@@ -134,8 +134,8 @@ class ProductForm
                             ->required(),
 
                         Toggle::make('has_scale')
-                            ->label('Se vende por peso')
-                            ->helperText('Activa si el producto se pesa en báscula')
+                            ->label('Se vende a granel')
+                            ->helperText('Activa para productos que se venden por peso, volumen o medida (kg, litros, gramos). El POS pedirá la cantidad al agregar.')
                             ->live()
                             ->default(false),
                     ]),

@@ -52,6 +52,12 @@ class ProductsTable
                     ->label('Stock')
                     ->sortable()
                     ->alignCenter()
+                    ->formatStateUsing(fn ($state, $record): string => match ($record->unidad) {
+                        'kg'    => rtrim(rtrim(number_format((float) $state, 3), '0'), '.') . ' kg',
+                        'litro' => rtrim(rtrim(number_format((float) $state, 3), '0'), '.') . ' L',
+                        'gramo' => rtrim(rtrim(number_format((float) $state, 3), '0'), '.') . ' g',
+                        default => (string) (int) $state,
+                    })
                     ->color(fn ($record): string =>
                         $record->stock <= $record->stock_min ? 'danger' : 'success'
                     )
