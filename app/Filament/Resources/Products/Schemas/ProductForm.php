@@ -147,17 +147,26 @@ class ProductForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('stock')
-                            ->label('Stock actual')
+                            ->label(fn(\Filament\Schemas\Components\Utilities\Get $get) => 'Stock actual'
+                                . ($get('has_scale') ? ' (' . ($get('unidad') ?? 'unidad') . ')' : ''))
+                            ->helperText(fn(\Filament\Schemas\Components\Utilities\Get $get) => $get('has_scale')
+                                ? 'Ingresa la cantidad disponible en ' . ($get('unidad') ?? 'la unidad elegida') . '. Ej: 10.500'
+                                : null)
                             ->numeric()
+                            ->step(fn(\Filament\Schemas\Components\Utilities\Get $get) => $get('has_scale') ? '0.001' : '1')
                             ->default(0)
                             ->minValue(0)
                             ->required(),
 
                         TextInput::make('stock_min')
-                            ->label('Stock mínimo')
-                            ->helperText('Se te alertará cuando el stock baje de este número')
+                            ->label(fn(\Filament\Schemas\Components\Utilities\Get $get) => 'Stock mínimo'
+                                . ($get('has_scale') ? ' (' . ($get('unidad') ?? 'unidad') . ')' : ''))
+                            ->helperText(fn(\Filament\Schemas\Components\Utilities\Get $get) => $get('has_scale')
+                                ? 'Alerta cuando queden menos de esta cantidad en ' . ($get('unidad') ?? 'la unidad elegida')
+                                : 'Se te alertará cuando el stock baje de este número')
                             ->numeric()
-                            ->default(5)
+                            ->step(fn(\Filament\Schemas\Components\Utilities\Get $get) => $get('has_scale') ? '0.001' : '1')
+                            ->default(fn(\Filament\Schemas\Components\Utilities\Get $get) => $get('has_scale') ? 1 : 5)
                             ->minValue(0)
                             ->required(),
 

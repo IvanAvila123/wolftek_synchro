@@ -16,10 +16,12 @@ class Product extends Model
     ];
 
     protected $casts = [
-        'price_buy' => 'decimal:2',
+        'price_buy'  => 'decimal:2',
         'price_sell' => 'decimal:2',
-        'has_scale' => 'boolean',
-        'is_active' => 'boolean',
+        'stock'      => 'decimal:3',
+        'stock_min'  => 'decimal:3',
+        'has_scale'  => 'boolean',
+        'is_active'  => 'boolean',
     ];
 
     public function store()
