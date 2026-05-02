@@ -11,7 +11,6 @@ use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -21,7 +20,7 @@ class SubscriptionPaymentResource extends Resource
 {
     protected static ?string $model = SubscriptionPayment::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::Banknotes;
+    protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
     protected static ?string $modelLabel = 'Pago por Transferencia';
 
@@ -31,12 +30,15 @@ class SubscriptionPaymentResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
-    protected static ?string $navigationBadgeTooltip = 'Pagos pendientes de aprobación';
-
     public static function getNavigationBadge(): ?string
     {
         $pending = SubscriptionPayment::where('status', 'pending')->count();
         return $pending > 0 ? (string) $pending : null;
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Pagos pendientes de aprobación';
     }
 
     public static function getNavigationBadgeColor(): string
