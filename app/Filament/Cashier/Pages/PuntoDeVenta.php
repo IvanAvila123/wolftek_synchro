@@ -32,6 +32,9 @@ class PuntoDeVenta extends Page
     public string $bulkMonto = '';
     public string $bulkMode = 'peso';
 
+    // Búsqueda por nombre
+    public array $searchResults = [];
+
     protected function getHeaderActions(): array
     {
         return [
@@ -119,34 +122,78 @@ class PuntoDeVenta extends Page
      * termine de leer el código y mande el "Enter" automático.
      */
 
+    public function updatedBarcode(): void
+    {
+        if (empty($this->barcode)) {
+            $this->searchResults = [];
+        }
+    }
+
     public function buscarProducto()
     {
         if (empty($this->barcode) || $this->bulkModalOpen) return;
 
         $storeId = filament()->getTenant()->id;
+        $term    = trim($this->barcode);
 
+        // 1. Coincidencia exacta por código de barras
         $product = Product::where('store_id', $storeId)
-            ->where('barcode', $this->barcode)
+            ->where('barcode', $term)
             ->where('is_active', true)
             ->first();
 
-        if (!$product) {
-            Notification::make()
-                ->title('Producto no encontrado')
-                ->danger()
-                ->send();
-            $this->barcode = '';
+        if ($product) {
+            $this->barcode       = '';
+            $this->searchResults = [];
+            $product->has_scale ? $this->abrirModalGranel($product) : $this->agregarAlCarrito($product);
             return;
         }
 
+        // 2. Búsqueda por nombre (parcial, sin distinción de mayúsculas)
+        $results = Product::where('store_id', $storeId)
+            ->where('is_active', true)
+            ->where('name', 'like', "%{$term}%")
+            ->orderBy('name')
+            ->limit(8)
+            ->get();
+
+        if ($results->count() === 1) {
+            $found               = $results->first();
+            $this->barcode       = '';
+            $this->searchResults = [];
+            $found->has_scale ? $this->abrirModalGranel($found) : $this->agregarAlCarrito($found);
+            return;
+        }
+
+        if ($results->count() > 1) {
+            $this->searchResults = $results->map(fn ($p) => [
+                'id'        => $p->id,
+                'name'      => $p->name,
+                'price'     => (float) $p->price_sell,
+                'unidad'    => $p->unidad,
+                'has_scale' => (bool) $p->has_scale,
+            ])->toArray();
+            return;
+        }
+
+        Notification::make()->title('Producto no encontrado')->danger()->send();
         $this->barcode = '';
+    }
 
-        if ($product->has_scale) {
-            $this->abrirModalGranel($product);
-            return;
-        }
+    public function seleccionarProducto(int $productId): void
+    {
+        $this->searchResults = [];
+        $this->barcode       = '';
 
-        $this->agregarAlCarrito($product);
+        $product = Product::find($productId);
+        if (!$product) return;
+
+        $product->has_scale ? $this->abrirModalGranel($product) : $this->agregarAlCarrito($product);
+    }
+
+    public function setPesoPreset(string $valor): void
+    {
+        $this->bulkPeso = $valor;
     }
 
     public function abrirModalGranel(Product $product): void

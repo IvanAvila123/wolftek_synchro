@@ -27,15 +27,16 @@
         <div class="lg:col-span-8 flex flex-col gap-4 min-h-0">
 
             {{-- Barra de búsqueda --}}
-            <div class="bg-white dark:bg-gray-900 rounded-xl ring-1 ring-gray-200 dark:ring-white/10 p-3 shadow-sm">
-                <div class="relative flex items-center gap-3">
+            <div class="relative bg-white dark:bg-gray-900 rounded-xl ring-1 ring-gray-200 dark:ring-white/10 p-3 shadow-sm">
+                <div class="flex items-center gap-3">
                     <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 shrink-0">
                         <x-heroicon-o-qr-code class="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <input
                         type="text"
-                        wire:model="barcode"
+                        wire:model.live.debounce.0ms="barcode"
                         wire:keydown.enter="buscarProducto"
+                        wire:keydown.escape="$set('searchResults', [])"
                         class="block w-full rounded-lg border-0 py-3.5 px-4 text-gray-900 ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-500 text-base font-medium dark:bg-gray-800 dark:text-white dark:ring-gray-700 dark:placeholder:text-gray-500 dark:focus:ring-emerald-500 transition-all"
                         placeholder="Escanea código de barras o busca por nombre..."
                         autofocus
@@ -45,6 +46,28 @@
                         <span class="text-xs text-gray-400">para buscar</span>
                     </div>
                 </div>
+
+                {{-- Dropdown de resultados por nombre --}}
+                @if(!empty($searchResults))
+                    <div class="absolute top-full left-0 right-0 mt-1 z-40 bg-white dark:bg-gray-900 rounded-xl shadow-xl ring-1 ring-gray-200 dark:ring-white/10 overflow-hidden">
+                        @foreach($searchResults as $result)
+                            <button
+                                wire:click="seleccionarProducto({{ $result['id'] }})"
+                                class="w-full flex items-center justify-between px-4 py-3 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors border-b border-gray-100 dark:border-gray-800 last:border-0 text-left"
+                            >
+                                <div>
+                                    <p class="font-semibold text-gray-900 dark:text-white text-sm">{{ $result['name'] }}</p>
+                                    @if($result['has_scale'])
+                                        <p class="text-xs text-violet-500 dark:text-violet-400">⚖️ A granel</p>
+                                    @endif
+                                </div>
+                                <span class="text-sm font-bold text-emerald-600 dark:text-emerald-400 shrink-0 ml-4">
+                                    ${{ number_format($result['price'], 2) }}<span class="text-xs font-normal text-gray-400">/{{ $result['unidad'] }}</span>
+                                </span>
+                            </button>
+                        @endforeach
+                    </div>
+                @endif
             </div>
 
             {{-- Tabla del carrito --}}
@@ -387,19 +410,38 @@
                         <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             Peso en {{ $bulkProduct['unidad'] }}
                         </label>
-                        <div class="relative">
+
+                        {{-- Input de peso --}}
+                        <div class="flex items-center rounded-xl bg-gray-50 dark:bg-gray-800 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus-within:ring-2 focus-within:ring-violet-500 transition-all overflow-hidden">
                             <input
                                 type="number"
                                 wire:model.live="bulkPeso"
                                 wire:keydown.enter="confirmarBulk"
-                                class="block w-full rounded-xl border-0 py-4 px-4 pr-14 text-2xl font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-violet-500 transition-all"
+                                class="flex-1 border-0 bg-transparent py-4 px-4 text-2xl font-bold text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0"
                                 placeholder="0.000"
                                 step="0.001"
                                 min="0.001"
                                 autofocus
                             >
-                            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm">{{ $bulkProduct['unidad'] }}</span>
+                            <span class="pr-4 text-gray-400 font-semibold text-sm shrink-0">{{ $bulkProduct['unidad'] }}</span>
                         </div>
+
+                        {{-- Botones rápidos de medida --}}
+                        @php
+                            $presets = $bulkProduct['unidad'] === 'gramo'
+                                ? [['100 g','100'],['250 g','250'],['500 g','500'],['1 kg','1000']]
+                                : [['¼','0.25'],['½','0.5'],['¾','0.75'],['1','1']];
+                        @endphp
+                        <div class="grid grid-cols-4 gap-2 mt-3">
+                            @foreach($presets as [$label, $val])
+                                <button
+                                    wire:click="setPesoPreset('{{ $val }}')"
+                                    class="py-2.5 rounded-xl text-sm font-bold text-gray-600 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700 hover:bg-violet-50 dark:hover:bg-violet-500/10 hover:ring-violet-400 dark:hover:ring-violet-500 hover:text-violet-700 dark:hover:text-violet-300 transition-all {{ $bulkPeso == $val ? 'bg-violet-50 dark:bg-violet-500/10 ring-violet-400 text-violet-700 dark:text-violet-300' : '' }}"
+                                >{{ $label }}</button>
+                            @endforeach
+                        </div>
+
+                        {{-- Total calculado --}}
                         @if($bulkPeso && (float)$bulkPeso > 0)
                             <div class="mt-3 flex justify-between items-center px-4 py-3 rounded-xl bg-violet-50 dark:bg-violet-500/10 ring-1 ring-violet-200 dark:ring-violet-500/20">
                                 <span class="text-sm font-semibold text-violet-700 dark:text-violet-300">Total</span>
@@ -412,19 +454,33 @@
                         <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             Monto en pesos
                         </label>
-                        <div class="relative">
-                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xl">$</span>
+
+                        {{-- Input de monto (flex para evitar overlap del $) --}}
+                        <div class="flex items-center rounded-xl bg-gray-50 dark:bg-gray-800 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus-within:ring-2 focus-within:ring-blue-500 transition-all overflow-hidden">
+                            <span class="pl-4 text-gray-400 font-bold text-xl shrink-0">$</span>
                             <input
                                 type="number"
                                 wire:model.live="bulkMonto"
                                 wire:keydown.enter="confirmarBulk"
-                                class="block w-full rounded-xl border-0 py-4 pl-10 pr-4 text-2xl font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-blue-500 transition-all"
+                                class="flex-1 border-0 bg-transparent py-4 px-2 text-2xl font-bold text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0"
                                 placeholder="0.00"
                                 step="0.50"
                                 min="0.01"
                                 autofocus
                             >
                         </div>
+
+                        {{-- Botones rápidos de monto --}}
+                        <div class="grid grid-cols-4 gap-2 mt-3">
+                            @foreach([['$5','5'],['$10','10'],['$20','20'],['$50','50']] as [$label, $val])
+                                <button
+                                    wire:click="$set('bulkMonto', '{{ $val }}')"
+                                    class="py-2.5 rounded-xl text-sm font-bold text-gray-600 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:ring-blue-400 dark:hover:ring-blue-500 hover:text-blue-700 dark:hover:text-blue-300 transition-all {{ $bulkMonto == $val ? 'bg-blue-50 dark:bg-blue-500/10 ring-blue-400 text-blue-700 dark:text-blue-300' : '' }}"
+                                >{{ $label }}</button>
+                            @endforeach
+                        </div>
+
+                        {{-- Equivalencia en unidad --}}
                         @if($bulkMonto && (float)$bulkMonto > 0 && $bulkProduct['price'] > 0)
                             <div class="mt-3 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 ring-1 ring-blue-200 dark:ring-blue-500/20 flex justify-between items-center">
                                 <span class="text-sm font-semibold text-blue-700 dark:text-blue-300">Equivale a</span>
