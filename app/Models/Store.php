@@ -160,6 +160,11 @@ class Store extends Model implements HasName
         return $this->hasMany(Subscription::class);
     }
 
+    public function subscriptionPayments()
+    {
+        return $this->hasMany(SubscriptionPayment::class);
+    }
+
     public function hasFeature(string $feature): bool
     {
         return $this->plan?->hasFeature($feature) ?? false;
