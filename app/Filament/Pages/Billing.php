@@ -55,9 +55,9 @@ class Billing extends Page
 
     // ─── Datos bancarios para SPEI ────────────────────────────────────────────
     // ⚙️ Cambia estos valores con tu información bancaria real
-    public string $bankClabe        = '000000000000000000';
-    public string $bankNombre       = 'BBVA';
-    public string $bankBeneficiario = 'Wolftek Synchro';
+    public string $bankClabe        = '638180000056813478';
+    public string $bankNombre       = 'NU';
+    public string $bankBeneficiario = 'Jesus Ivan Avila Ramirez';
 
     public function mount()
     {
