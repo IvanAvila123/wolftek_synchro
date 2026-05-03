@@ -376,134 +376,160 @@
         </div>
     </div>
 
-    {{-- ========== MODAL: Producto a granel ========== --}}
-    @if($bulkModalOpen && $bulkProduct)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" wire:click.self="cancelarBulk">
-            <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden ring-1 ring-gray-200 dark:ring-white/10">
+    {{-- ========== MODAL: Producto a granel (teleportado al body para evitar problemas de z-index/CSS del panel) ========== --}}
+    @teleport('body')
+    <div
+        x-data
+        x-show="$wire.bulkModalOpen"
+        x-cloak
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        @click.self="$wire.cancelarBulk()"
+        style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;background:rgba(0,0,0,0.55);backdrop-filter:blur(3px);"
+    >
+        @if($bulkProduct)
+        <div
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100"
+            style="background:#111827;border-radius:1rem;box-shadow:0 25px 50px -12px rgba(0,0,0,0.6);width:100%;max-width:24rem;overflow:hidden;border:1px solid rgba(255,255,255,0.08);"
+        >
+            {{-- Encabezado --}}
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:1.25rem 1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,0.08);">
+                <div>
+                    <p style="font-size:1.05rem;font-weight:700;color:#f9fafb;margin:0;">{{ $bulkProduct['name'] }}</p>
+                    <p style="font-size:0.85rem;color:#9ca3af;margin:0.2rem 0 0;">
+                        ${{ number_format($bulkProduct['price'], 2) }} / {{ $bulkProduct['unidad'] }}
+                    </p>
+                </div>
+                <button wire:click="cancelarBulk" style="padding:0.4rem;border-radius:0.5rem;background:transparent;border:none;cursor:pointer;color:#6b7280;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
+                    <x-heroicon-o-x-mark style="width:1.25rem;height:1.25rem;" />
+                </button>
+            </div>
 
-                {{-- Encabezado --}}
-                <div class="flex items-start justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-                    <div>
-                        <h3 class="text-base font-bold text-gray-900 dark:text-white">{{ $bulkProduct['name'] }}</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                            ${{ number_format($bulkProduct['price'], 2) }} / {{ $bulkProduct['unidad'] }}
-                        </p>
+            {{-- Tabs --}}
+            <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid rgba(255,255,255,0.08);">
+                <button wire:click="$set('bulkMode', 'peso')"
+                    style="padding:0.75rem 1rem;font-size:0.875rem;font-weight:600;cursor:pointer;border:none;transition:all .15s;
+                        {{ $bulkMode === 'peso'
+                            ? 'color:#a78bfa;border-bottom:2px solid #8b5cf6;background:rgba(139,92,246,0.08);'
+                            : 'color:#6b7280;background:transparent;' }}"
+                >⚖️ Por peso</button>
+                <button wire:click="$set('bulkMode', 'monto')"
+                    style="padding:0.75rem 1rem;font-size:0.875rem;font-weight:600;cursor:pointer;border:none;transition:all .15s;
+                        {{ $bulkMode === 'monto'
+                            ? 'color:#60a5fa;border-bottom:2px solid #3b82f6;background:rgba(59,130,246,0.08);'
+                            : 'color:#6b7280;background:transparent;' }}"
+                >💰 Por monto</button>
+            </div>
+
+            {{-- Cuerpo --}}
+            <div style="padding:1.25rem;">
+                @if($bulkMode === 'peso')
+                    <p style="font-size:0.8rem;font-weight:600;color:#d1d5db;margin:0 0 0.5rem;">Peso en {{ $bulkProduct['unidad'] }}</p>
+
+                    {{-- Input peso --}}
+                    <div style="display:flex;align-items:center;border-radius:0.75rem;background:#1f2937;border:1px solid #374151;overflow:hidden;">
+                        <input
+                            type="number"
+                            wire:model.live="bulkPeso"
+                            wire:keydown.enter="confirmarBulk"
+                            style="flex:1;border:none;background:transparent;padding:1rem;font-size:1.75rem;font-weight:700;color:#f9fafb;outline:none;min-width:0;"
+                            placeholder="0.000"
+                            step="0.001"
+                            min="0.001"
+                            autofocus
+                        >
+                        <span style="padding-right:1rem;color:#6b7280;font-weight:600;font-size:0.85rem;white-space:nowrap;">{{ $bulkProduct['unidad'] }}</span>
                     </div>
-                    <button wire:click="cancelarBulk" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 transition-colors">
-                        <x-heroicon-o-x-mark class="w-5 h-5" />
-                    </button>
-                </div>
 
-                {{-- Tabs: Por peso / Por monto --}}
-                <div class="grid grid-cols-2 border-b border-gray-100 dark:border-gray-800">
-                    <button wire:click="$set('bulkMode', 'peso')" class="px-4 py-3 text-sm font-semibold transition-colors {{ $bulkMode === 'peso' ? 'text-violet-600 dark:text-violet-400 border-b-2 border-violet-500 bg-violet-50/50 dark:bg-violet-500/5' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }}">
-                        ⚖️ Por peso
-                    </button>
-                    <button wire:click="$set('bulkMode', 'monto')" class="px-4 py-3 text-sm font-semibold transition-colors {{ $bulkMode === 'monto' ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500 bg-blue-50/50 dark:bg-blue-500/5' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }}">
-                        💰 Por monto
-                    </button>
-                </div>
+                    {{-- Presets --}}
+                    @php
+                        $presets = $bulkProduct['unidad'] === 'gramo'
+                            ? [['100g','100'],['250g','250'],['500g','500'],['1kg','1000']]
+                            : [['¼','0.25'],['½','0.5'],['¾','0.75'],['1','1']];
+                    @endphp
+                    <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+                        @foreach($presets as [$label, $val])
+                            <button
+                                wire:click="setPesoPreset('{{ $val }}')"
+                                style="flex:1;padding:0.6rem 0;border-radius:0.6rem;font-size:0.85rem;font-weight:700;cursor:pointer;border:1px solid;transition:all .15s;
+                                    {{ $bulkPeso == $val
+                                        ? 'background:rgba(139,92,246,0.15);border-color:#8b5cf6;color:#a78bfa;'
+                                        : 'background:transparent;border-color:#374151;color:#9ca3af;' }}"
+                            >{{ $label }}</button>
+                        @endforeach
+                    </div>
 
-                {{-- Cuerpo --}}
-                <div class="px-5 py-5">
-                    @if($bulkMode === 'peso')
-                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                            Peso en {{ $bulkProduct['unidad'] }}
-                        </label>
-
-                        {{-- Input de peso --}}
-                        <div class="flex items-center rounded-xl bg-gray-50 dark:bg-gray-800 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus-within:ring-2 focus-within:ring-violet-500 transition-all overflow-hidden">
-                            <input
-                                type="number"
-                                wire:model.live="bulkPeso"
-                                wire:keydown.enter="confirmarBulk"
-                                class="flex-1 border-0 bg-transparent py-4 px-4 text-2xl font-bold text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0"
-                                placeholder="0.000"
-                                step="0.001"
-                                min="0.001"
-                                autofocus
-                            >
-                            <span class="pr-4 text-gray-400 font-semibold text-sm shrink-0">{{ $bulkProduct['unidad'] }}</span>
+                    {{-- Total --}}
+                    @if($bulkPeso && (float)$bulkPeso > 0)
+                        <div style="margin-top:0.75rem;display:flex;justify-content:space-between;align-items:center;padding:0.75rem 1rem;border-radius:0.75rem;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.25);">
+                            <span style="font-size:0.85rem;font-weight:600;color:#a78bfa;">Total</span>
+                            <span style="font-size:1.3rem;font-weight:900;color:#a78bfa;">${{ number_format((float)$bulkPeso * $bulkProduct['price'], 2) }}</span>
                         </div>
-
-                        {{-- Botones rápidos de medida --}}
-                        @php
-                            $presets = $bulkProduct['unidad'] === 'gramo'
-                                ? [['100 g','100'],['250 g','250'],['500 g','500'],['1 kg','1000']]
-                                : [['¼','0.25'],['½','0.5'],['¾','0.75'],['1','1']];
-                        @endphp
-                        <div class="grid grid-cols-4 gap-2 mt-3">
-                            @foreach($presets as [$label, $val])
-                                <button
-                                    wire:click="setPesoPreset('{{ $val }}')"
-                                    class="py-2.5 rounded-xl text-sm font-bold text-gray-600 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700 hover:bg-violet-50 dark:hover:bg-violet-500/10 hover:ring-violet-400 dark:hover:ring-violet-500 hover:text-violet-700 dark:hover:text-violet-300 transition-all {{ $bulkPeso == $val ? 'bg-violet-50 dark:bg-violet-500/10 ring-violet-400 text-violet-700 dark:text-violet-300' : '' }}"
-                                >{{ $label }}</button>
-                            @endforeach
-                        </div>
-
-                        {{-- Total calculado --}}
-                        @if($bulkPeso && (float)$bulkPeso > 0)
-                            <div class="mt-3 flex justify-between items-center px-4 py-3 rounded-xl bg-violet-50 dark:bg-violet-500/10 ring-1 ring-violet-200 dark:ring-violet-500/20">
-                                <span class="text-sm font-semibold text-violet-700 dark:text-violet-300">Total</span>
-                                <span class="text-xl font-black text-violet-700 dark:text-violet-300">
-                                    ${{ number_format((float)$bulkPeso * $bulkProduct['price'], 2) }}
-                                </span>
-                            </div>
-                        @endif
-                    @else
-                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                            Monto en pesos
-                        </label>
-
-                        {{-- Input de monto (flex para evitar overlap del $) --}}
-                        <div class="flex items-center rounded-xl bg-gray-50 dark:bg-gray-800 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus-within:ring-2 focus-within:ring-blue-500 transition-all overflow-hidden">
-                            <span class="pl-4 text-gray-400 font-bold text-xl shrink-0">$</span>
-                            <input
-                                type="number"
-                                wire:model.live="bulkMonto"
-                                wire:keydown.enter="confirmarBulk"
-                                class="flex-1 border-0 bg-transparent py-4 px-2 text-2xl font-bold text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0"
-                                placeholder="0.00"
-                                step="0.50"
-                                min="0.01"
-                                autofocus
-                            >
-                        </div>
-
-                        {{-- Botones rápidos de monto --}}
-                        <div class="grid grid-cols-4 gap-2 mt-3">
-                            @foreach([['$5','5'],['$10','10'],['$20','20'],['$50','50']] as [$label, $val])
-                                <button
-                                    wire:click="$set('bulkMonto', '{{ $val }}')"
-                                    class="py-2.5 rounded-xl text-sm font-bold text-gray-600 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:ring-blue-400 dark:hover:ring-blue-500 hover:text-blue-700 dark:hover:text-blue-300 transition-all {{ $bulkMonto == $val ? 'bg-blue-50 dark:bg-blue-500/10 ring-blue-400 text-blue-700 dark:text-blue-300' : '' }}"
-                                >{{ $label }}</button>
-                            @endforeach
-                        </div>
-
-                        {{-- Equivalencia en unidad --}}
-                        @if($bulkMonto && (float)$bulkMonto > 0 && $bulkProduct['price'] > 0)
-                            <div class="mt-3 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 ring-1 ring-blue-200 dark:ring-blue-500/20 flex justify-between items-center">
-                                <span class="text-sm font-semibold text-blue-700 dark:text-blue-300">Equivale a</span>
-                                <span class="text-base font-black text-blue-700 dark:text-blue-300">
-                                    {{ number_format((float)$bulkMonto / $bulkProduct['price'], 3) }} {{ $bulkProduct['unidad'] }}
-                                </span>
-                            </div>
-                        @endif
                     @endif
-                </div>
+                @else
+                    <p style="font-size:0.8rem;font-weight:600;color:#d1d5db;margin:0 0 0.5rem;">Monto en pesos</p>
 
-                {{-- Pie --}}
-                <div class="px-5 pb-5 flex gap-3">
-                    <button wire:click="cancelarBulk" class="flex-1 py-3 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-400 ring-1 ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
-                        Cancelar
-                    </button>
-                    <button wire:click="confirmarBulk" class="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-violet-500 hover:bg-violet-600 transition-all shadow-sm shadow-violet-500/20">
-                        Agregar al carrito
-                    </button>
-                </div>
+                    {{-- Input monto --}}
+                    <div style="display:flex;align-items:center;border-radius:0.75rem;background:#1f2937;border:1px solid #374151;overflow:hidden;">
+                        <span style="padding-left:1rem;color:#6b7280;font-weight:700;font-size:1.25rem;">$</span>
+                        <input
+                            type="number"
+                            wire:model.live="bulkMonto"
+                            wire:keydown.enter="confirmarBulk"
+                            style="flex:1;border:none;background:transparent;padding:1rem 0.5rem;font-size:1.75rem;font-weight:700;color:#f9fafb;outline:none;min-width:0;"
+                            placeholder="0.00"
+                            step="0.50"
+                            min="0.01"
+                            autofocus
+                        >
+                    </div>
+
+                    {{-- Presets monto --}}
+                    <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+                        @foreach([['$5','5'],['$10','10'],['$20','20'],['$50','50']] as [$label, $val])
+                            <button
+                                wire:click="$set('bulkMonto', '{{ $val }}')"
+                                style="flex:1;padding:0.6rem 0;border-radius:0.6rem;font-size:0.85rem;font-weight:700;cursor:pointer;border:1px solid;transition:all .15s;
+                                    {{ $bulkMonto == $val
+                                        ? 'background:rgba(59,130,246,0.15);border-color:#3b82f6;color:#60a5fa;'
+                                        : 'background:transparent;border-color:#374151;color:#9ca3af;' }}"
+                            >{{ $label }}</button>
+                        @endforeach
+                    </div>
+
+                    {{-- Equivalencia --}}
+                    @if($bulkMonto && (float)$bulkMonto > 0 && $bulkProduct['price'] > 0)
+                        <div style="margin-top:0.75rem;display:flex;justify-content:space-between;align-items:center;padding:0.75rem 1rem;border-radius:0.75rem;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);">
+                            <span style="font-size:0.85rem;font-weight:600;color:#60a5fa;">Equivale a</span>
+                            <span style="font-size:1rem;font-weight:900;color:#60a5fa;">
+                                {{ number_format((float)$bulkMonto / $bulkProduct['price'], 3) }} {{ $bulkProduct['unidad'] }}
+                            </span>
+                        </div>
+                    @endif
+                @endif
+            </div>
+
+            {{-- Pie --}}
+            <div style="display:flex;gap:0.75rem;padding:0 1.25rem 1.25rem;">
+                <button wire:click="cancelarBulk"
+                    style="flex:1;padding:0.75rem;border-radius:0.75rem;font-size:0.875rem;font-weight:600;cursor:pointer;background:transparent;color:#9ca3af;border:1px solid #374151;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'"
+                >Cancelar</button>
+                <button wire:click="confirmarBulk"
+                    style="flex:1;padding:0.75rem;border-radius:0.75rem;font-size:0.875rem;font-weight:700;cursor:pointer;background:#8b5cf6;color:white;border:none;box-shadow:0 4px 15px rgba(139,92,246,0.3);"
+                    onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#8b5cf6'"
+                >Agregar al carrito</button>
             </div>
         </div>
-    @endif
+        @endif
+    </div>
+    @endteleport
 
     @script
     <script>
