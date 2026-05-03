@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class CashShift extends Model
 {
     protected $fillable = [
-        'cash_register_id', 'user_id', 'opening_amount',
+        'store_id', 'cash_register_id', 'user_id', 'opening_amount',
         'closing_amount', 'status', 'opened_at', 'closed_at'
     ];
 
