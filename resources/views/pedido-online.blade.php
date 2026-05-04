@@ -10,11 +10,6 @@
 
         :root { --ticket-width: {{ $order->store->ticket_width ?? '80mm' }}; }
 
-        @@page {
-            size: var(--ticket-width) auto;
-            margin: 0;
-        }
-
         body {
             font-family: 'Courier New', 'Lucida Console', monospace;
             font-size: 12px;
@@ -233,7 +228,6 @@
         .btn-close:hover { background: #e5e7eb; }
 
         @@media print {
-            @@page { size: var(--ticket-width) auto; margin: 0; }
             body { background: #fff; }
             .ticket { width: var(--ticket-width); max-width: var(--ticket-width); padding: 2mm 3mm 6mm; }
             .no-print { display: none !important; }
@@ -349,16 +343,24 @@
     </div>
 
     <script>
-        var storeDefault = '{{ $order->store->ticket_width ?? '80mm' }}';
+        var storeDefault = '{{ $order->store->ticket_width ?? "80mm" }}';
+
+        function applyPageSize(w) {
+            var s = document.getElementById('_ps');
+            if (!s) { s = document.createElement('style'); s.id = '_ps'; document.head.appendChild(s); }
+            s.textContent = '@@page { size: ' + w + ' auto; margin: 0; }';
+        }
 
         function cambiarAncho(width) {
             localStorage.setItem('ticket_width', width);
             document.documentElement.style.setProperty('--ticket-width', width);
+            applyPageSize(width);
         }
 
         window.onload = function () {
             var saved = localStorage.getItem('ticket_width') || storeDefault;
             document.documentElement.style.setProperty('--ticket-width', saved);
+            applyPageSize(saved);
             var sel = document.getElementById('widthSelector');
             if (sel) sel.value = saved;
         };
